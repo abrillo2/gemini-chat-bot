@@ -1,5 +1,6 @@
-functions-framework
-flask
-google-auth
-google-api-python-client
-google-generativeai
+functions-framework==3.*
+flask==2.*
+google-auth==2.*
+google-api-python-client==2.*
+google-cloud-aiplatform==1.38.1  # For Vertex AI integration
+google-generativeai==0.3.2       # Make sure this is included
