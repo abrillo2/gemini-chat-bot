@@ -4,14 +4,14 @@ from google.auth import default
 from googleapiclient.discovery import build
 import google.generativeai as genai
 
-# 🔹 Hardcode your Workspace user for impersonation
+# 🔹 Workspace user to impersonate
 IMPERSONATE_USER = "admin@dev2.orghub.ca"  # replace with your Workspace user
 
 # 🔹 Cloud project / region
 PROJECT_ID = "compact-arc-471013-q6"
-LOCATION = "us-central1"  # Vertex AI region
+LOCATION = "us-central1"
 
-# 🔹 Configure the Gen AI SDK (no API key needed if running on Cloud Run/Functions)
+# 🔹 Configure Google Gen AI SDK (no API key needed on Cloud Run/Functions)
 genai.configure(client_type="gcp_project", project=PROJECT_ID, location=LOCATION)
 
 
@@ -21,9 +21,7 @@ def get_user_credentials():
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/drive.readonly",
     ])
-    # Impersonate the Workspace user
-    delegated_creds = creds.with_subject(IMPERSONATE_USER)
-    return delegated_creds
+    return creds.with_subject(IMPERSONATE_USER)
 
 
 def fetch_gmail_messages(creds):
