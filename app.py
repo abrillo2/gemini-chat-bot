@@ -1,20 +1,18 @@
 import functions_framework
 from flask import request, jsonify
-from google.cloud import aiplatform
 from google.auth import default
-from google.auth.transport.requests import Request as GoogleAuthRequest
 from googleapiclient.discovery import build
+import google.generativeai as genai
 
-# 🔹 Hardcode your Workspace user for impersonation (only this one email)
-IMPERSONATE_USER = "admin@dev2.orghub.ca"  # <-- replace with your Workspace user
+# 🔹 Hardcode your Workspace user for impersonation
+IMPERSONATE_USER = "admin@dev2.orghub.ca"  # replace with your Workspace user
 
 # 🔹 Cloud project / region
-PROJECT_ID = "compact-arc-471013-q6"  # <-- replace with your GCP project
-LOCATION = "us-central1"        # <-- Vertex AI region
+PROJECT_ID = "compact-arc-471013-q6"
+LOCATION = "us-central1"  # Vertex AI region
 
-# Initialize Vertex AI once
-aiplatform.init(project=PROJECT_ID, location=LOCATION)
-gemini_model = aiplatform.GenerativeModel("gemini-1.5-flash")
+# 🔹 Configure the Gen AI SDK (no API key needed if running on Cloud Run/Functions)
+genai.configure(client_type="gcp_project", project=PROJECT_ID, location=LOCATION)
 
 
 def get_user_credentials():
@@ -48,13 +46,13 @@ def fetch_drive_files(creds):
 
 def call_gemini(question: str, context: str) -> str:
     prompt = f"""
-    You are a helpful FAQ assistant.
-    Question: {question}
-    Context: {context}
-    Answer:
-    """
-    resp = gemini_model.generate_content(prompt)
-    return resp.text.strip() if getattr(resp, "text", None) else "No answer found."
+You are a helpful FAQ assistant.
+Question: {question}
+Context: {context}
+Answer:
+"""
+    response = genai.chat(model="gemini-1.5", messages=[{"author": "user", "content": prompt}])
+    return response.last.content if getattr(response, "last", None) else "No answer found."
 
 
 @functions_framework.http
