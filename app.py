@@ -25,16 +25,15 @@ except Exception as e:
     logger.error(f"Vertex AI initialization failed: {e}")
 
 def get_user_credentials():
-    """Get credentials for a Workspace user using domain-wide delegation."""
+    """Temporary: Use default credentials without delegation"""
     try:
+        from google.auth import default
         creds, _ = default(scopes=[
             "https://www.googleapis.com/auth/gmail.readonly",
             "https://www.googleapis.com/auth/drive.readonly",
-            "https://www.googleapis.com/auth/cloud-platform"
         ])
-        delegated_creds = creds.with_subject(IMPERSONATE_USER)
-        logger.info("Credentials obtained successfully")
-        return delegated_creds
+        logger.info("Using default credentials (no delegation)")
+        return creds
     except Exception as e:
         logger.error(f"Failed to get credentials: {e}")
         raise
