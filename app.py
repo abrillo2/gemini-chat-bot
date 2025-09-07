@@ -1,19 +1,31 @@
 import functions_framework
-import json
 from flask import request, jsonify
 from google.cloud import aiplatform
-from google.oauth2 import service_account
+from google.auth import default
+from google.auth.transport.requests import Request as GoogleAuthRequest
 from googleapiclient.discovery import build
 
-# 🔹 Hardcode your values here
-PROJECT_ID = "compact-arc-471013-q6"                 # <-- replace with your GCP project
-LOCATION = "us-central1"                       # <-- or another region where Vertex AI is enabled
-IMPERSONATE_USER = "admin@dev2.orghub.ca"      # <-- replace with a Workspace user email
-SERVICE_ACCOUNT_FILE = "key.json"              # <-- path to your service account JSON inside container
+# 🔹 Hardcode your Workspace user for impersonation (only this one email)
+IMPERSONATE_USER = "admin@dev2.orghub.ca"  # <-- replace with your Workspace user
 
-# Initialize Vertex AI
+# 🔹 Cloud project / region
+PROJECT_ID = "compact-arc-471013-q6"  # <-- replace with your GCP project
+LOCATION = "us-central1"        # <-- Vertex AI region
+
+# Initialize Vertex AI once
 aiplatform.init(project=PROJECT_ID, location=LOCATION)
 gemini_model = aiplatform.GenerativeModel("gemini-1.5-flash")
+
+
+def get_user_credentials():
+    """Get credentials for a Workspace user using domain-wide delegation."""
+    creds, _ = default(scopes=[
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/drive.readonly",
+    ])
+    # Impersonate the Workspace user
+    delegated_creds = creds.with_subject(IMPERSONATE_USER)
+    return delegated_creds
 
 
 def fetch_gmail_messages(creds):
@@ -34,21 +46,9 @@ def fetch_drive_files(creds):
     return "\n".join(f["name"] for f in files)
 
 
-def get_user_credentials():
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE,
-        scopes=[
-            "https://www.googleapis.com/auth/gmail.readonly",
-            "https://www.googleapis.com/auth/drive.readonly",
-        ],
-        subject=IMPERSONATE_USER,  # impersonating this user
-    )
-    return creds.with_quota_project(PROJECT_ID)
-
-
 def call_gemini(question: str, context: str) -> str:
     prompt = f"""
-    You are a helpful FAQ assistant. 
+    You are a helpful FAQ assistant.
     Question: {question}
     Context: {context}
     Answer:
@@ -70,8 +70,8 @@ def chat_faq_bot(request):
     creds = get_user_credentials()
     gmail_context = fetch_gmail_messages(creds)
     drive_context = fetch_drive_files(creds)
-
     context = f"Gmail:\n{gmail_context}\n\nDrive:\n{drive_context}"
+
     answer = call_gemini(question, context)
 
     return jsonify({"text": answer})
